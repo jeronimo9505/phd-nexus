@@ -57,6 +57,31 @@ export default function Login() {
                         setLockedUntil(Date.now() + 60000); // 1 minute lock
                         setError('Has excedido el número de intentos. Cuenta bloqueada temporalmente por 1 minuto.');
                     } else {
+                // Login
+                const response = await login(email, password);
+                // Handle both boolean (legacy) and object return types
+                const success = typeof response === 'object' ? response.success : response;
+                const errorMsg = typeof response === 'object' ? response.error : null;
+                
+                if (success) {
+                    setSuccessMsg('¡Sesión iniciada correctamente!');
+                    setTimeout(() => {
+                        router.push('/dashboard');
+                    }, 500);
+                    return;
+                }
+
+                if (!success) {
+                    const newAttempts = attempts + 1;
+                    setAttempts(newAttempts);
+                    if (newAttempts >= 5) {
+                        setLockedUntil(Date.now() + 60000); // 1 minute lock
+                        setError('Has excedido el número de intentos. Cuenta bloqueada temporalmente por 1 minuto.');
+                    } else {
+                        setError(errorMsg || 'Correo o contraseña incorrectos.');
+                    }
+                    setIsLoading(false);
+                }
                         setError('Correo o contraseña incorrectos.');
                     }
                     setIsLoading(false);

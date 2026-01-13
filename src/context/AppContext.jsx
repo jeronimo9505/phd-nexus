@@ -104,6 +104,11 @@ export const AppProvider = ({ children }) => {
     // Initial Auth Sync
     useEffect(() => {
         const checkAuth = async () => {
+            if (!supabase) {
+                console.warn('Supabase client not initialized in checkAuth');
+                setLoading(false);
+                return;
+            }
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 setCurrentUser(session.user);
@@ -113,41 +118,60 @@ export const AppProvider = ({ children }) => {
             setLoading(false);
         };
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session) {
-                setCurrentUser(session.user);
-                setIsAuthenticated(true);
-                await loadUserData(session.user.id);
-            } else {
-                setCurrentUser(null);
-                setIsAuthenticated(false);
-                setGroups([]);
-                setTasks([]);
-                setReports([]);
-            }
-            setLoading(false);
-        });
+        if (supabase) {
+            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+                if (session) {
+                    setCurrentUser(session.user);
+                    setIsAuthenticated(true);
+                    await loadUserData(session.user.id);
+                } else {
+                    setCurrentUser(null);
+                    setIsAuthenticated(false);
+                    setGroups([]);
+                    setTasks([]);
+                    setReports([]);
+                }
+                setLoading(false);
+            });
+            return () => subscription.unsubscribe();
+        } else {
+             setLoading(false);
+        }
 
         checkAuth();
-        return () => subscription.unsubscribe();
     }, [loadUserData]);
 
     const login = async (email, password) => {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) return false;
-        
-        // IMMEDIATE STATE UPDATE TO PREVENT RACE CONDITION
-        if (data.session) {
-            setCurrentUser(data.session.user);
-            setIsAuthenticated(true);
-            // Don't await this to speed up UI transition, logic handles loading state
-            loadUserData(data.session.user.id); 
+        if (!supabase) {
+            console.error('Supabase client is not initialized. Check environment variables.');
+            return { success: false, error: 'Error de configuración: Cliente Supabase no disponible.' };
         }
 
-        return true;
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                console.error('Login error:', error.message);
+                return { success: false, error: 'Correo o contraseña incorrectos.' };
+            }
+            
+            // IMMEDIATE STATE UPDATE TO PREVENT RACE CONDITION
+            if (data.session) {
+                setCurrentUser(data.session.user);
+                setIsAuthenticated(true);
+                // Don't await this to speed up UI transition, logic handles loading state
+                loadUserData(data.session.user.id); 
+            }
+
+            return { success: true };
+        } catch (err) {
+            console.error('Unexpected login error:', err);
+            return { success: false, error: 'Error inesperado durante el inicio de sesión.' };
+        }
     };
 
     const register = async (email, password, full_name) => {
+        if (!supabase) return { success: false, message: 'Supabase client missing' };
+        
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -163,7 +187,7 @@ export const AppProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        await supabase.auth.signOut();
+        if (supabase) await supabase.auth.signOut();
         setIsAuthenticated(false);
         setCurrentUser(null);
         if (typeof window !== 'undefined') window.localStorage.removeItem('phd_nexus_activeGroupId');
