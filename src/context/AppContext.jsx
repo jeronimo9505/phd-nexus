@@ -9,7 +9,6 @@ export const AppProvider = ({ children }) => {
     // -------------------------------------------------------------------------
     // 1. STATE DEFINITIONS
     // -------------------------------------------------------------------------
-
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -156,10 +155,13 @@ export const AppProvider = ({ children }) => {
             
             // IMMEDIATE STATE UPDATE TO PREVENT RACE CONDITION
             if (data.session) {
+                setLoading(true); // Force loading state
                 setCurrentUser(data.session.user);
                 setIsAuthenticated(true);
-                // Don't await this to speed up UI transition, logic handles loading state
-                loadUserData(data.session.user.id); 
+                
+                // AWAIT DATA LOAD to ensure Dashboard has content before redirecting
+                await loadUserData(data.session.user.id);
+                setLoading(false); 
             }
 
             return { success: true };
