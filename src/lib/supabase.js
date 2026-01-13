@@ -1,7 +1,13 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-const containerUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const containerKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(containerUrl, containerKey);
+// Verificación de seguridad para evitar errores en el build de Vercel
+if (!supabaseUrl || !supabaseKey) {
+    console.warn('Supabase credentials missing. This is expected during some build phases if env vars are not yet injected.');
+}
+
+export const supabase = (supabaseUrl && supabaseKey) 
+    ? createClient(supabaseUrl, supabaseKey)
+    : null;
