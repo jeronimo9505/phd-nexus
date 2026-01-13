@@ -23,7 +23,37 @@ export default function DashboardPage() {
     }
 
     if (!isAuthenticated) {
-        return null;
+        return (
+            <div className="flex flex-col items-center justify-center h-screen bg-slate-50 text-slate-500">
+                <p>⚠️ Estado: No Autenticado.</p>
+                <p className="text-sm mt-2">Si ves esto, el login funcionó pero el estado no se guardó.</p>
+                <button onClick={() => router.push('/login')} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded">
+                    Volver a Login
+                </button>
+            </div>
+        );
+    }
+    if (!isAuthenticated) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen bg-slate-50 text-slate-500">
+                <p>⚠️ Estado: No Autenticado.</p>
+                <p className="text-sm mt-2">Si ves esto, el login funcionó pero el estado no se guardó.</p>
+                <button onClick={() => router.push('/login')} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded">
+                    Volver a Login
+                </button>
+            </div>
+        );
+    }
+    if (!isAuthenticated) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen bg-slate-50 text-slate-500">
+                <p>⚠️ Estado: No Autenticado.</p>
+                <p className="text-sm mt-2">Si ves esto, el login funcionó pero el estado no se guardó.</p>
+                <button onClick={() => router.push('/login')} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded">
+                    Volver a Login
+                </button>
+            </div>
+        );
     }
 
     return (
