@@ -1,0 +1,28 @@
+    const login = async (email, password) => {
+        if (!supabase) {
+            console.error('Supabase client is not initialized. Check environment variables.');
+            return { success: false, error: 'Error crítico: Cliente Supabase no inicializado. Contacte al administrador.' };
+        }
+
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                console.error('Login error:', error.message);
+                // Return generic message for user security, or specific if needed
+                return { success: false, error: 'Correo o contraseña incorrectos.' };
+            }
+            
+            // IMMEDIATE STATE UPDATE TO PREVENT RACE CONDITION
+            if (data.session) {
+                setCurrentUser(data.session.user);
+                setIsAuthenticated(true);
+                // Don't await this to speed up UI transition, logic handles loading state
+                loadUserData(data.session.user.id); 
+            }
+
+            return { success: true };
+        } catch (err) {
+            console.error('Unexpected login error:', err);
+            return { success: false, error: 'Error inesperado durante el inicio de sesión.' };
+        }
+    };

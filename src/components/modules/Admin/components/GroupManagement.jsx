@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useApp } from '@/context/AppContext';
 import { mockDB } from '@/lib/mockDatabase';
 import { MOCK_USERS } from '@/data/mockUsers';
 import { Box, Plus, Users, Trash2, Edit2, Shield, UserPlus } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 
 export default function GroupManagement() {
+    const { currentUser } = useApp();
     const [groups, setGroups] = useState([]);
     const [expandedGroup, setExpandedGroup] = useState(null);
     const [members, setMembers] = useState([]);
@@ -97,7 +99,7 @@ export default function GroupManagement() {
             name: newGroupName,
             description: newGroupDesc,
             code: code,
-            created_by: 'adm1' // Default to admin for now
+            created_by: currentUser?.id // Use real user ID
         });
 
         if (error) {

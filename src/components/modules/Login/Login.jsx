@@ -23,14 +23,12 @@ export default function Login() {
     const [attempts, setAttempts] = useState(0);
     const [lockedUntil, setLockedUntil] = useState(null);
 
-    // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated && currentUser) {
             router.push('/dashboard');
         }
     }, [isAuthenticated, currentUser, router]);
 
-    // Check lock status
     useEffect(() => {
         if (lockedUntil && Date.now() > lockedUntil) {
             setLockedUntil(null);
@@ -58,16 +56,15 @@ export default function Login() {
 
         try {
             if (isLogin) {
-                // Login
+                // Login Flow
                 const response = await login(email, password);
                 
-                // Handle both boolean (legacy) and object return types safeguards
                 const success = typeof response === 'object' ? response.success : response;
                 const errorMsg = typeof response === 'object' ? response.error : null;
 
                 if (success) {
                     setSuccessMsg('¡Sesión correcta! Entrando...');
-                    // FORCE PAGE RELOAD to avoid next/router hanging
+                    // FORCE PAGE RELOAD to reset app state completely
                     window.location.href = '/dashboard'; 
                     return;
                 }
@@ -77,7 +74,7 @@ export default function Login() {
                 setAttempts(newAttempts);
                 
                 if (newAttempts >= 5) {
-                    setLockedUntil(Date.now() + 60000); // 1 minute lock
+                    setLockedUntil(Date.now() + 60000); 
                     setError('Has excedido el número de intentos. Cuenta bloqueada temporalmente por 1 minuto.');
                 } else {
                     setError(errorMsg || 'Correo o contraseña incorrectos.');
@@ -85,11 +82,11 @@ export default function Login() {
                 setIsLoading(false);
 
             } else {
-                // Register
+                // Register Flow
                 const { success, message } = await register(email, password, name);
                 if (success) {
                     setSuccessMsg('Registro exitoso. Revisa tu correo para confirmar o inicia sesión.');
-                    setIsLogin(true); // Switch to login
+                    setIsLogin(true);
                     setPassword('');
                 } else {
                     setError(message || 'Error en el registro');
@@ -111,7 +108,6 @@ export default function Login() {
                 transition={{ duration: 0.5 }}
                 className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100"
             >
-                {/* Header */}
                 <div className="bg-indigo-900 p-8 text-center relative overflow-hidden transition-all duration-500">
                     <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                         <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(255,255,255,0.8)_0%,transparent_60%)] animate-pulse-slow"></div>
@@ -129,7 +125,6 @@ export default function Login() {
                     <p className="text-indigo-200 text-sm mt-2 relative z-10">Sistema de Gestión de Doctorado</p>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex border-b border-gray-100">
                     <button
                         onClick={() => setIsLogin(true)}
@@ -147,7 +142,6 @@ export default function Login() {
                     </button>
                 </div>
 
-                {/* Form */}
                 <div className="p-8">
                     <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -268,3 +262,4 @@ export default function Login() {
         </div>
     );
 }
+// Fix timestamp: 2026-01-13T05:07:00

@@ -1,0 +1,10 @@
+                // Handle both boolean (legacy) and object return types safeguards
+                const success = typeof response === 'object' ? response.success : response;
+                const errorMsg = typeof response === 'object' ? response.error : null;
+
+                if (success) {
+                    setSuccessMsg('¡Sesión correcta! Entrando...');
+                    // FORCE PAGE RELOAD to avoid next/router hanging
+                    window.location.href = '/dashboard'; 
+                    return;
+                }
