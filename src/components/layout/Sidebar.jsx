@@ -8,7 +8,6 @@ import {
     Plus, CheckCircle2, GraduationCap, UserPlus, Shield, Users
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useAuth } from '@/context/AuthContext';
 import { getWeekLabel, formatDateShort } from '../../utils/helpers';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,17 +43,13 @@ const NavButton = ({ href, active, icon, label, badge, onClick }) => {
 export default function Sidebar() {
     const router = useRouter();
     const {
-        tasks, reports,
-        activeSupervisorId, setActiveSupervisorId, availableSupervisors,
+        tasks, reports, currentUser, logout,
         groups, activeGroupId, setActiveGroupId,
-        hasRole, setSelectedReportId, setIsEditingReport,
-        userProfile, userRole // Added these
+        setSelectedReportId, setIsEditingReport,
+        userRole, activeGroup
     } = useApp();
 
-    // Use AuthContext for user info to be secure, but rely on AppContext for Permission Checks in Mixed Mode
-    const { user, roles, can, signOut } = useAuth();
     const pathname = usePathname();
-
     const accessibleGroups = groups || [];
 
     // Mapping pathname to active module
@@ -65,6 +60,9 @@ export default function Sidebar() {
         setIsEditingReport(false);
         router.push('/reports');
     };
+
+    // Helper for role checks
+    const isAdmin = userRole === 'admin' || currentUser?.email?.includes('admin'); // Fallback check
 
     return (
         <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-20 shrink-0 h-screen font-sans">
@@ -87,15 +85,19 @@ export default function Sidebar() {
                         }}
                         className="w-full text-xs p-2 rounded-lg border border-gray-200 bg-slate-50 text-slate-700 font-medium outline-none focus:border-indigo-300 transition-all cursor-pointer"
                     >
-                        {accessibleGroups.map(g => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
+                        {accessibleGroups.length > 0 ? (
+                            accessibleGroups.map(g => (
+                                <option key={g.id} value={g.id}>{g.name}</option>
+                            ))
+                        ) : (
+                            <option value="">Cargando grupos...</option>
+                        )}
                     </select>
                 </div>
 
                 <p className="text-xs text-slate-500 mt-3 flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
-                    {userProfile?.name || user?.email || 'Invitado'}
+                    {currentUser?.user_metadata?.full_name || currentUser?.email || 'Usuario'}
                 </p>
             </div>
 
@@ -111,14 +113,14 @@ export default function Sidebar() {
                     onClick={handleReportsClick}
                 />
 
-                <NavButton href="/tasks" active={isActive('/tasks')} icon={<CheckSquare className="w-4 h-4" />} label="Gestor de Tareas" badge={tasks.filter(t => t.status !== 'done' && t.groupId === activeGroupId).length} />
+                <NavButton href="/tasks" active={isActive('/tasks')} icon={<CheckSquare className="w-4 h-4" />} label="Gestor de Tareas" badge={tasks?.filter(t => t.status !== 'done' && t.groupId === activeGroupId)?.length || 0} />
                 <NavButton href="/knowledge" active={isActive('/knowledge')} icon={<Library className="w-4 h-4" />} label="Libro de Conocimiento" />
 
                 <div className="pt-4 mt-2 border-t border-gray-100">
                     <NavButton href="/settings" active={isActive('/settings')} icon={<Settings className="w-4 h-4" />} label="Configuración" />
 
                     {/* Admin Panel Link */}
-                    {(hasRole?.('admin') || userProfile?.system_role === 'admin' || roles.includes('admin') || roles.includes('owner')) && (
+                    {isAdmin && (
                         <NavButton
                             href="/admin"
                             active={isActive('/admin')}
@@ -137,14 +139,14 @@ export default function Sidebar() {
                         "bg-gray-100 text-gray-700 border-gray-200"
                     )}>
                         <div className="flex items-center justify-center gap-2">
-                            <span className="capitalize">{userRole || userProfile?.system_role || 'Sin Rol'}</span>
+                            <span className="capitalize">{userRole || 'Estudiante'}</span>
                         </div>
                         <div className="text-[10px] text-slate-500 font-medium text-center truncate w-full px-1">
-                            {userProfile?.email || user?.email}
+                            {currentUser?.email}
                         </div>
                     </div>
                 </div>
-                <button onClick={signOut} className="mt-2 text-[10px] text-red-500 hover:text-red-700 font-bold w-full text-center hover:bg-red-50 p-1 rounded transition-colors">
+                <button onClick={logout} className="mt-2 text-[10px] text-red-500 hover:text-red-700 font-bold w-full text-center hover:bg-red-50 p-1 rounded transition-colors">
                     Cerrar Sesión
                 </button>
             </div>
