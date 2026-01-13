@@ -134,23 +134,23 @@ export const AppProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) return { success: false, error: error.message };
-        return { success: true, user: data.user };
+        if (error) return false;
+        return true;
     };
 
-    const register = async (userData) => {
+    const register = async (email, password, full_name) => {
         const { data, error } = await supabase.auth.signUp({
-            email: userData.email,
-            password: userData.password,
+            email,
+            password,
             options: {
                 data: {
-                    full_name: userData.full_name,
+                    full_name,
                     status: 'pending'
                 }
             }
         });
-        if (error) return { success: false, error: error.message };
-        return { success: true, user: data.user };
+        if (error) return { success: false, message: error.message };
+        return { success: true };
     };
 
     const logout = async () => {
