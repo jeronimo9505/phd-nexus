@@ -68,7 +68,7 @@ export const AppProvider = ({ children }) => {
             if (currentGroupId && currentGroupId !== activeGroupId) {
                 setActiveGroupId(currentGroupId);
                 if (typeof window !== 'undefined') window.localStorage.setItem('phd_nexus_activeGroupId', currentGroupId);
-                return;
+                // CRITICAL FIX: Do NOT return here. Continue using local 'currentGroupId' variable.
             }
 
             if (currentGroupId) {
@@ -103,71 +103,59 @@ export const AppProvider = ({ children }) => {
     // Initial Auth Sync
     useEffect(() => {
         const checkAuth = async () => {
-            if (!supabase) {
-                console.warn('Supabase client not initialized in checkAuth');
-                setLoading(false);
-                return;
-            }
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                setCurrentUser(session.user);
-                setIsAuthenticated(true);
-                await loadUserData(session.user.id);
-            }
-            setLoading(false);
-        };
-
-        if (supabase) {
-            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-                if (session) {
-                    setCurrentUser(session.user);
-                    setIsAuthenticated(true);
-                    await loadUserData(session.user.id);
-                } else {
-                    setCurrentUser(null);
-                    setIsAuthenticated(false);
-                    setGroups([]);
-                    setTasks([]);
-                    setReports([]);
-                }
-                setLoading(false);
-            });
-            return () => subscription.unsubscribe();
-        } else {
+             // Basic structure to check auth
+             if (!supabase) { setLoading(false); return; }
+             
+             const { data: { session } } = await supabase.auth.getSession();
+             if (session?.user) {
+                 setCurrentUser(session.user);
+                 setIsAuthenticated(true);
+                 await loadUserData(session.user.id);
+             }
              setLoading(false);
-        }
+        };
+        
+        // Listen for changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+             if (event === 'SIGNED_IN' || session) {
+                 setCurrentUser(session.user);
+                 setIsAuthenticated(true);
+                 // We don't await here generally to avoid blocking, BUT for initial load checkAuth handles it.
+                 // This listener is mostly for background updates or logout.
+                 loadUserData(session.user.id);
+             } else {
+                 setCurrentUser(null);
+                 setIsAuthenticated(false);
+                 setGroups([]);
+                 setTasks([]);
+                 setReports([]);
+             }
+             setLoading(false);
+        });
 
         checkAuth();
+
+        return () => subscription.unsubscribe();
     }, [loadUserData]);
 
     const login = async (email, password) => {
-        if (!supabase) {
-            console.error('Supabase client is not initialized. Check environment variables.');
-            return { success: false, error: 'Error de configuración: Cliente Supabase no disponible.' };
-        }
+        if (!supabase) return { success: false, error: 'Conf Error' };
 
         try {
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                console.error('Login error:', error.message);
-                return { success: false, error: 'Correo o contraseña incorrectos.' };
-            }
+            if (error) return { success: false, error: 'Error de credenciales.' };
             
-            // IMMEDIATE STATE UPDATE TO PREVENT RACE CONDITION
             if (data.session) {
-                setLoading(true); // Force loading state
+                setLoading(true);
                 setCurrentUser(data.session.user);
                 setIsAuthenticated(true);
-                
-                // AWAIT DATA LOAD to ensure Dashboard has content before redirecting
                 await loadUserData(data.session.user.id);
                 setLoading(false); 
             }
 
             return { success: true };
         } catch (err) {
-            console.error('Unexpected login error:', err);
-            return { success: false, error: 'Error inesperado durante el inicio de sesión.' };
+            return { success: false, error: 'Excepción al login.' };
         }
     };
 
