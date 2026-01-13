@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useApp } from '@/context/AppContext';
-import { BookOpen, Lock, User, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useApp } from '@/context/AppContext';
+import { motion } from 'framer-motion';
+import {
+    Mail, Lock, User, ArrowRight, BookOpen, GraduationCap,
+    Shield, AlertCircle, CheckCircle2, ShieldCheck
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function Login() {
-    const { login, register } = useApp();
-    const router = useRouter(); // Initialize router
+    const router = useRouter();
+    const { login, register, isAuthenticated, currentUser } = useApp();
+
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -16,59 +21,48 @@ export default function Login() {
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-
-    // Rate Limiting State
     const [attempts, setAttempts] = useState(0);
     const [lockedUntil, setLockedUntil] = useState(null);
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated && currentUser) {
+            router.push('/dashboard');
+        }
+    }, [isAuthenticated, currentUser, router]);
+
+    // Check lock status
+    useEffect(() => {
+        if (lockedUntil && Date.now() > lockedUntil) {
+            setLockedUntil(null);
+            setAttempts(0);
+            setError('');
+        }
+    }, [lockedUntil]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setSuccessMsg('');
 
-        // Check Lockout
-        if (lockedUntil) {
-            if (Date.now() < lockedUntil) {
-                const secondsLeft = Math.ceil((lockedUntil - Date.now()) / 1000);
-                setError(`Demasiados intentos. Inténtalo de nuevo en ${secondsLeft} segundos.`);
-                return;
-            } else {
-                setLockedUntil(null);
-                setAttempts(0);
-            }
+        if (lockedUntil && Date.now() < lockedUntil) {
+            setError('Cuenta temporalmente bloqueada. Intenta más tarde.');
+            return;
+        }
+
+        if (isLogin && (!email || !password)) {
+            setError('Por favor completa todos los campos.');
+            return;
         }
 
         setIsLoading(true);
 
         try {
             if (isLogin) {
-                const success = await login(email, password);
-                if (success) {
-                    // Instant redirect
-                    router.push('/dashboard');
-                    setIsLoading(false);
-                    return;
-                }
-
-                if (!success) {
-                    const newAttempts = attempts + 1;
-                    setAttempts(newAttempts);
-                    if (newAttempts >= 5) {
-                        setLockedUntil(Date.now() + 60000); // 1 minute lock
-                        setError('Has excedido el número de intentos. Cuenta bloqueada temporalmente por 1 minuto.');
-                    } else {
                 // Login
                 const response = await login(email, password);
-                // Handle both boolean (legacy) and object return types
-                const success = typeof response === 'object' ? response.success : response;
-                const errorMsg = typeof response === 'object' ? response.error : null;
                 
-                if (success) {
-                    setSuccessMsg('¡Sesión iniciada correctamente!');
-                    setTimeout(() => {
-                        router.push('/dashboard');
-                    }, 500);
-                    return;
+                // Handle both boolean (legacy) and object return types safeguards
                 }
 
                 if (!success) {
@@ -76,13 +70,19 @@ export default function Login() {
                     setAttempts(newAttempts);
                     if (newAttempts >= 5) {
                         setLockedUntil(Date.now() + 60000); // 1 minute lock
+                // Handle both boolean (legacy) and object return types safeguards
+                const success = typeof response === 'object' ? response.success : response;
+                const errorMsg = typeof response === 'object' ? response.error : null;
+
+                if (success) {
+                    setSuccessMsg('¡Sesión correcta! Entrando...');
+                    // FORCE PAGE RELOAD to avoid next/router hanging
+                    window.location.href = '/dashboard'; 
+                    return;
+                }
                         setError('Has excedido el número de intentos. Cuenta bloqueada temporalmente por 1 minuto.');
                     } else {
                         setError(errorMsg || 'Correo o contraseña incorrectos.');
-                    }
-                    setIsLoading(false);
-                }
-                        setError('Correo o contraseña incorrectos.');
                     }
                     setIsLoading(false);
                 }
@@ -99,15 +99,10 @@ export default function Login() {
                 setIsLoading(false);
             }
         } catch (err) {
+            console.error(err);
             setError('Ocurrió un error inesperado.');
             setIsLoading(false);
         }
-    };
-
-    const toggleMode = () => {
-        setIsLogin(!isLogin);
-        setError('');
-        setSuccessMsg('');
     };
 
     return (
@@ -133,9 +128,7 @@ export default function Login() {
                         </div>
                     </motion.div>
                     <h1 className="text-2xl font-bold text-white relative z-10">PhD Nexus</h1>
-                    <p className="text-indigo-200 text-sm mt-2 relative z-10">
-                        {isLogin ? 'Sistema de Gestión de Doctorado' : 'Registro de Nueva Cuenta'}
-                    </p>
+                    <p className="text-indigo-200 text-sm mt-2 relative z-10">Sistema de Gestión de Doctorado</p>
                 </div>
 
                 {/* Tabs */}
