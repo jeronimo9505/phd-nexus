@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  text-rendering: geometricPrecision;
+}
+
+/* Flash cue for comment navigation (Word-like) */
+@keyframes comment-highlight-flash {
+  0% {
+    background-color: rgba(99, 102, 241, 0.20);
+    outline: 2px solid rgba(99, 102, 241, 0.0);
+  }
+  40% {
+    background-color: rgba(99, 102, 241, 0.35);
+    outline: 2px solid rgba(99, 102, 241, 0.55);
+  }
+  100% {
+    background-color: rgba(99, 102, 241, 0.12);
+    outline: 2px solid rgba(99, 102, 241, 0.0);
+  }
+}
+
+.comment-highlight-flash {
+  animation: comment-highlight-flash 900ms ease-out 1;
+  border-radius: 2px;
+}
+
+/* Better justification for report read view */
+#printable-paper .text-justify {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+@media print {
+  /* 
+    UNIVERSAL PRINT RESET 
+    This overrides all other display logic to force a clean document print.
+  */
+
+  /* 1. Hide EVERYTHING by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* 2. Target the specific printable page container */
+  /* We use the ID we added to ReportReadView */
+  #printable-paper,
+  #printable-paper * {
+    visibility: visible;
+  }
+
+  /* 3. Define paper size & margins */
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  /* 4. Position the printable container to cover the page */
+  #printable-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: auto !important;
+    right: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    box-shadow: none !important;
+    z-index: 9999;
+  }
+
+  /* 4. Reset Body/Html to allow full height */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  /* 5. Clean up the document styles for print */
+  #report-document-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Force Annotation Marks to look like normal text or bold in print if preferred, 
+     but keeping them simple is safer. */
+
+  /* Avoid forcing all divs to 100% width; it can collapse complex layouts */
+  #printable-paper {
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  /* Ensure text is strictly justified */
+  #printable-paper div[class*="text-justify"] {
+    text-align: justify !important;
+    text-justify: inter-word !important;
+    /* Better print justification */
+  }
+
+  /* Hide the scrollbars specifically */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
