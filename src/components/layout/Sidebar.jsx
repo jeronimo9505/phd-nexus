@@ -2,154 +2,139 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import {
-    BookOpen, LayoutDashboard, FileText, CheckSquare, Library, Settings,
-    Plus, CheckCircle2, GraduationCap, UserPlus, Shield, Users
+import { usePathname } from 'next/navigation';
+import { 
+    LayoutDashboard, 
+    FileText, 
+    CheckSquare, 
+    Book, 
+    Settings, 
+    LogOut, 
+    Menu, 
+    X,
+    Shield
 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
-import { getWeekLabel, formatDateShort } from '../../utils/helpers';
+import { useApp } from '@/context/AppContext';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const NavButton = ({ href, active, icon, label, badge, onClick }) => {
-    const content = (
-        <div
-            className={clsx(
-                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                active ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            )}
-        >
-            <div className="flex items-center gap-3">{icon}<span>{label}</span></div>
-            {badge > 0 && (
-                <span className={clsx("text-[10px] px-1.5 py-0.5 rounded-full font-bold", active ? "bg-indigo-500 text-white" : "bg-slate-200 text-slate-400")}>
-                    {badge}
-                </span>
-            )}
-        </div>
-    );
+export default function Sidebar() {
+    const pathname = usePathname();
+    const { 
+        currentUser,
+        logout,
+        activeGroup,
+        isSidebarOpen,
+        setIsSidebarOpen,
+        userRole 
+    } = useApp();
+    
+    const userProfile = currentUser ? {
+        full_name: currentUser.user_metadata?.full_name || 'Usuario',
+        email: currentUser.email,
+        system_role: currentUser.user_metadata?.system_role || 'user'
+    } : null;
 
-    if (onClick) {
-        return <button onClick={onClick} className="w-full">{content}</button>;
+    const menuItems = [
+        { icon: LayoutDashboard, label: 'Dashboard General', path: '/dashboard', color: 'text-indigo-500' },
+        { icon: FileText, label: 'Reportes Científicos', path: '/reports', color: 'text-amber-500' },
+        { icon: CheckSquare, label: 'Gestor de Tareas', path: '/tasks', color: 'text-emerald-500' },
+        { icon: Book, label: 'Libro de Conocimiento', path: '/knowledge', color: 'text-blue-500' },
+        { icon: Settings, label: 'Configuración', path: '/settings', color: 'text-slate-500' },
+    ];
+
+    if (userProfile?.system_role === 'admin') {
+        menuItems.push({ icon: Shield, label: 'Admin Panel', path: '/admin', color: 'text-purple-500', isAdmin: true });
     }
 
     return (
-        <Link href={href} className="w-full block">
-            {content}
-        </Link>
-    );
-};
-
-export default function Sidebar() {
-    const router = useRouter();
-    const {
-        tasks, reports, currentUser, logout,
-        groups, activeGroupId, setActiveGroupId,
-        setSelectedReportId, setIsEditingReport,
-        userRole, activeGroup
-    } = useApp();
-
-    const pathname = usePathname();
-    const accessibleGroups = groups || [];
-
-    // Mapping pathname to active module
-    const isActive = (path) => pathname?.startsWith(path);
-
-    const handleReportsClick = () => {
-        setSelectedReportId(null);
-        setIsEditingReport(false);
-        router.push('/reports');
-    };
-
-    // Helper for role checks
-    const isAdmin = userRole === 'admin' || currentUser?.email?.includes('admin'); // Fallback check
-
-    return (
-        <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-20 shrink-0 h-screen font-sans">
-            <div className="p-6 border-b border-gray-100">
-                <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <BookOpen className="w-6 h-6 text-indigo-600" />
-                    PhD Nexus
-                </h1>
-
-                <div className="mt-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        <Users className="w-3 h-3" /> Grupo Activo
+        <aside className={clsx(
+            "fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transition-all duration-300 flex flex-col",
+            isSidebarOpen ? "w-72" : "w-20"
+        )}>
+            {/* Header */}
+            <div className="h-20 flex items-center px-6 border-b border-slate-100 justify-between">
+                <Link href="/dashboard" className="flex items-center gap-3 group">
+                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 group-hover:scale-105 transition-transform">
+                        <Book className="w-6 h-6 text-white" />
                     </div>
-                    <select
-                        value={activeGroupId || ""}
-                        onChange={(e) => {
-                            setActiveGroupId(e.target.value);
-                            setSelectedReportId(null);
-                            setIsEditingReport(false);
-                        }}
-                        className="w-full text-xs p-2 rounded-lg border border-gray-200 bg-slate-50 text-slate-700 font-medium outline-none focus:border-indigo-300 transition-all cursor-pointer"
-                    >
-                        {accessibleGroups.length > 0 ? (
-                            accessibleGroups.map(g => (
-                                <option key={g.id} value={g.id}>{g.name}</option>
-                            ))
-                        ) : (
-                            <option value="">Cargando grupos...</option>
-                        )}
-                    </select>
-                </div>
-
-                <p className="text-xs text-slate-500 mt-3 flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
-                    {currentUser?.user_metadata?.full_name || currentUser?.email || 'Usuario'}
-                </p>
-            </div>
-
-            <div className="p-4 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
-                <p className="text-[10px] font-bold text-slate-400 uppercase px-3 mb-2 tracking-wider">Módulos</p>
-                <NavButton href="/dashboard" active={pathname === '/dashboard'} icon={<LayoutDashboard className="w-4 h-4" />} label="Dashboard General" />
-
-                <NavButton
-                    href="/reports"
-                    active={isActive('/reports')}
-                    icon={<FileText className="w-4 h-4" />}
-                    label="Reportes Científicos"
-                    onClick={handleReportsClick}
-                />
-
-                <NavButton href="/tasks" active={isActive('/tasks')} icon={<CheckSquare className="w-4 h-4" />} label="Gestor de Tareas" badge={tasks?.filter(t => t.status !== 'done' && t.groupId === activeGroupId)?.length || 0} />
-                <NavButton href="/knowledge" active={isActive('/knowledge')} icon={<Library className="w-4 h-4" />} label="Libro de Conocimiento" />
-
-                <div className="pt-4 mt-2 border-t border-gray-100">
-                    <NavButton href="/settings" active={isActive('/settings')} icon={<Settings className="w-4 h-4" />} label="Configuración" />
-
-                    {/* Admin Panel Link */}
-                    {isAdmin && (
-                        <NavButton
-                            href="/admin"
-                            active={isActive('/admin')}
-                            icon={<Shield className="w-4 h-4 text-indigo-600" />}
-                            label="Admin Panel"
-                        />
+                    {isSidebarOpen && (
+                        <span className="font-bold text-xl text-slate-800 tracking-tight">PhD Nexus</span>
                     )}
-                </div>
-            </div>
-
-            <div className="p-4 bg-slate-50 border-t border-gray-200">
-                <div className="flex flex-col gap-1 text-center">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Rol Actual</span>
-                    <div className={clsx(
-                        "px-3 py-2 rounded-lg text-xs font-bold border flex flex-col gap-2 transition-colors",
-                        "bg-gray-100 text-gray-700 border-gray-200"
-                    )}>
-                        <div className="flex items-center justify-center gap-2">
-                            <span className="capitalize">{userRole || 'Estudiante'}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-500 font-medium text-center truncate w-full px-1">
-                            {currentUser?.email}
-                        </div>
-                    </div>
-                </div>
-                <button onClick={logout} className="mt-2 text-[10px] text-red-500 hover:text-red-700 font-bold w-full text-center hover:bg-red-50 p-1 rounded transition-colors">
-                    Cerrar Sesión
+                </Link>
+                <button 
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors hidden md:block"
+                >
+                    {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
             </div>
-        </aside >
+
+            {/* User & Group info */}
+            {isSidebarOpen ? (
+                <div className="px-6 py-6 border-b border-slate-50">
+                    <div className="mb-2">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Grupo Activo</p>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                             <p className="font-bold text-slate-700 text-sm truncate">{activeGroup?.name || 'Cargando...'}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${currentUser ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        <p className="text-xs font-medium text-slate-500 truncate max-w-[180px]">
+                            {userProfile?.full_name || 'invitado'}
+                        </p>
+                    </div>
+                </div>
+            ) : (
+                <div className="py-6 flex justify-center border-b border-slate-50">
+                     <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-4" title={activeGroup?.name}>
+                        <span className="text-xs font-bold text-slate-500">{activeGroup?.name?.[0] || '?'}</span>
+                     </div>
+                </div>
+            )}
+
+            {/* Nav */}
+            <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
+                <p className={clsx("px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 transition-opacity", !isSidebarOpen && "opacity-0 hidden")}>Módulos</p>
+                
+                {menuItems.map((item) => {
+                    const isActive = pathname.startsWith(item.path);
+                    return (
+                        <Link 
+                            key={item.path} 
+                            href={item.path}
+                            className={clsx(
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                                isActive 
+                                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" 
+                                    : "text-slate-600 hover:bg-slate-50 hover:text-indigo-600",
+                                item.isAdmin && !isActive && "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-100"
+                            )}
+                            title={!isSidebarOpen ? item.label : undefined}
+                        >
+                            <item.icon className={clsx("w-5 h-5 transition-transform group-hover:scale-110", isActive ? "text-white" : item.color)} />
+                            {isSidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
+                            {isActive && isSidebarOpen && <motion.div layoutId="active-pill" className="absolute left-0 w-1 h-8 bg-indigo-400 rounded-r-full hidden" />}
+                        </Link>
+                    )
+                })}
+            </nav>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100">
+                <button 
+                    onClick={logout}
+                    className={clsx(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors group",
+                        !isSidebarOpen && "justify-center"
+                    )}
+                    title="Cerrar Sesión"
+                >
+                    <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                    {isSidebarOpen && <span className="font-bold text-sm">Cerrar Sesión</span>}
+                </button>
+            </div>
+        </aside>
     );
 }
