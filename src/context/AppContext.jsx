@@ -135,6 +135,15 @@ export const AppProvider = ({ children }) => {
     const login = async (email, password) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) return false;
+        
+        // IMMEDIATE STATE UPDATE TO PREVENT RACE CONDITION
+        if (data.session) {
+            setCurrentUser(data.session.user);
+            setIsAuthenticated(true);
+            // Don't await this to speed up UI transition, logic handles loading state
+            loadUserData(data.session.user.id); 
+        }
+
         return true;
     };
 
