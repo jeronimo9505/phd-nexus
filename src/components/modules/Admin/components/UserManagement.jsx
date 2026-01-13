@@ -8,7 +8,7 @@ import {
 import { useApp } from '@/context/AppContext'; // Ensure correct path
 import { supabase } from '@/lib/supabase';
 import { formatDateShort } from '@/utils/helpers';
-import Modal from '@/components/common/Modal'; // Ensure correct path
+import Modal from '@/components/ui/Modal';
 
 export default function UserManagement() {
     const { currentUser } = useApp();
